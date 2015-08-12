@@ -23,6 +23,7 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import org.trustedanalytics.utils.hdfs.EnableHadoop;
 import org.trustedanalytics.utils.hdfs.HdfsConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.Cloud;
@@ -35,8 +36,8 @@ import org.springframework.context.annotation.Profile;
 import java.io.IOException;
 import java.net.URISyntaxException;
 
+@EnableHadoop
 @Configuration
-@ComponentScan(basePackages = {"org.trustedanalytics.utils.hdfs", "org.trustedanalytics.store"})
 public class ObjectStoreConfiguration {
 
     @Bean
