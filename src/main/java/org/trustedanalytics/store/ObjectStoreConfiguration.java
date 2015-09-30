@@ -15,29 +15,30 @@
  */
 package org.trustedanalytics.store;
 
-import org.trustedanalytics.store.hdfs.HdfsObjectStore;
-import org.trustedanalytics.store.s3.S3ObjectStore;
-import org.trustedanalytics.store.s3.S3ServiceInfo;
-
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
-import org.trustedanalytics.utils.hdfs.EnableHadoop;
-import org.trustedanalytics.utils.hdfs.HdfsConfig;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.springframework.cloud.Cloud;
 import org.springframework.cloud.CloudFactory;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.trustedanalytics.hadoop.config.ConfigurationHelperImpl;
+import org.trustedanalytics.hadoop.kerberos.KrbLoginManagerFactory;
+import org.trustedanalytics.store.hdfs.FileSystemFactoryImpl;
+import org.trustedanalytics.store.hdfs.HdfsObjectStore;
+import org.trustedanalytics.store.s3.S3ObjectStore;
+import org.trustedanalytics.store.s3.S3ServiceInfo;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
 
-@EnableHadoop
-@Configuration
+import javax.security.auth.login.LoginException;
+
+@org.springframework.context.annotation.Configuration
 public class ObjectStoreConfiguration {
 
     @Bean
@@ -59,9 +60,14 @@ public class ObjectStoreConfiguration {
     }
 
     @Bean
-    @Profile({"hdfs", "insecure", "secure"})
-    public ObjectStore hdfsObjectStore(HdfsConfig hdfsConf) throws IOException, InterruptedException,
-            URISyntaxException {
-        return new HdfsObjectStore(hdfsConf.getFileSystem(), hdfsConf.getPath());
+    @Profile({"hdfs", "cloud"})
+    public ObjectStore hdfsObjectStore() throws IOException, InterruptedException,
+                                                URISyntaxException, LoginException {
+        FileSystemFactoryImpl fsFactory =
+            new FileSystemFactoryImpl(ConfigurationHelperImpl.getInstance(),
+                                      KrbLoginManagerFactory.getInstance());
+        FileSystem fs = fsFactory.getFileSystem();
+        Path path = fsFactory.getChrootedPath();
+        return new HdfsObjectStore(fs, path);
     }
 }
