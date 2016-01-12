@@ -19,16 +19,14 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import javax.security.auth.login.LoginException;
 
 public interface FileSystemFactory {
 
-  FileSystem getFileSystem() throws IOException, LoginException, InterruptedException;
-
-  FileSystem getSecureFileSystem() throws IOException, LoginException, InterruptedException;
-
-  FileSystem getInsecureFileSystem() throws IOException, LoginException, InterruptedException;
+  FileSystem getFileSystem()
+      throws IOException, LoginException, InterruptedException, URISyntaxException;
 
   Path getChrootedPath() throws IOException;
 

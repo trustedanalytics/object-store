@@ -15,93 +15,36 @@
  */
 package org.trustedanalytics.store.hdfs;
 
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.trustedanalytics.hadoop.config.ConfigurationHelper;
-import org.trustedanalytics.hadoop.config.ConfigurationLocator;
-import org.trustedanalytics.hadoop.config.PropertyLocator;
-import org.trustedanalytics.hadoop.kerberos.KrbLoginManager;
-import org.trustedanalytics.hadoop.kerberos.KrbLoginManagerFactory;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Map;
+import org.trustedanalytics.hadoop.config.client.AppConfiguration;
+import org.trustedanalytics.hadoop.config.client.Property;
+import org.trustedanalytics.hadoop.config.client.ServiceType;
+import org.trustedanalytics.hadoop.config.client.helper.Hdfs;
 
 import javax.security.auth.login.LoginException;
+import java.io.IOException;
+import java.net.URISyntaxException;
 
 public class FileSystemFactoryImpl implements FileSystemFactory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(FileSystemFactoryImpl.class);
+  private final AppConfiguration helper;
 
-  private static final String AUTHENTICATION_METHOD = "kerberos";
-
-  private static final String AUTHENTICATION_METHOD_PROPERTY = "hadoop.security.authentication";
-
-  private ConfigurationHelper confHelper;
-
-  private KrbLoginManagerFactory loginManagerFactory;
-
-  private Configuration hadoopConf = new Configuration(false);
-
-  public FileSystemFactoryImpl(ConfigurationHelper confHelper,
-                        KrbLoginManagerFactory loginManagerFactory) {
-    this.confHelper = confHelper;
-    this.loginManagerFactory = loginManagerFactory;
+  public FileSystemFactoryImpl(AppConfiguration helper) {
+    this.helper = helper;
   }
 
-  public FileSystem getFileSystem() throws IOException, LoginException, InterruptedException {
-
-    Map<String, String> params = confHelper.getConfigurationFromEnv(ConfigurationLocator.HADOOP);
-    params.forEach(hadoopConf::set);
-
-    if(AUTHENTICATION_METHOD.equals(hadoopConf.get(AUTHENTICATION_METHOD_PROPERTY))) {
-      return getSecureFileSystem();
-    } else {
-      return getInsecureFileSystem();
-    }
+  public FileSystem getFileSystem()
+    throws IOException, LoginException, InterruptedException, URISyntaxException {
+    return Hdfs.newInstance().createFileSystem();
   }
 
   public Path getChrootedPath() throws IOException {
-    return new Path(getPropertyFromCredentials(PropertyLocator.HDFS_URI));
+    String hdfsUri = getHdfsUriFromConfiguration(helper);
+    return new Path(hdfsUri);
   }
 
-  public FileSystem getSecureFileSystem() throws IOException, LoginException,
-                                                  InterruptedException {
-    LOGGER.info("Trying kerberos auth");
-    KrbLoginManager loginManager = loginManagerFactory.getKrbLoginManagerInstance(
-            getPropertyFromCredentials(PropertyLocator.KRB_KDC),
-            getPropertyFromCredentials(PropertyLocator.KRB_REALM));
-
-    loginManager.loginInHadoop(loginManager.loginWithCredentials(
-        getPropertyFromCredentials(PropertyLocator.USER),
-        getPropertyFromCredentials(PropertyLocator.PASSWORD).toCharArray()), hadoopConf);
-
-    LOGGER.info("Creating filesytem with kerberos auth");
-    return FileSystem.get(prepareHdfsUri(),
-                          hadoopConf, getPropertyFromCredentials(PropertyLocator.USER));
-  }
-
-  public FileSystem getInsecureFileSystem() throws IOException, InterruptedException {
-    LOGGER.info("Creating filesytem without kerberos auth");
-    return FileSystem.get(prepareHdfsUri(),
-                          hadoopConf, getPropertyFromCredentials(PropertyLocator.USER));
-  }
-
-  private String getPropertyFromCredentials(PropertyLocator property) throws IOException {
-    return confHelper.getPropertyFromEnv(property)
-        .orElseThrow(() -> new IllegalStateException(
-            property.name() + " not found in VCAP_SERVICES"));
-  }
-
-  private URI prepareHdfsUri() {
-    try {
-      return new URI(getPropertyFromCredentials(PropertyLocator.HDFS_URI));
-    } catch (URISyntaxException | IOException e) {
-      throw new IllegalArgumentException("Invalid hdfs uri!", e);
-    }
+  private String getHdfsUriFromConfiguration(AppConfiguration helper) {
+    return helper.getServiceConfig(ServiceType.HDFS_TYPE).getProperty(Property.HDFS_URI).get();
   }
 }

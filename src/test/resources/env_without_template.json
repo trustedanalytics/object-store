@@ -1,0 +1,25 @@
+{
+  "hdfs": [
+    {
+      "credentials": {
+        "uri": "hdfs://localhost/org/single-org/instances/1cfe7b45-1e07-4751-a853-78ef47a313cc/"
+      },
+      "name": "hdfs-instance"
+    }
+  ],
+  "user-provided": [
+    {
+      "credentials": {
+        "kdc": "sample-kdc",
+        "krealm": "SAMPLE_KDE",
+        "kuser": "sampleUser",
+        "kpassword": "samplePassword"
+      },
+      "label": "user-provided",
+      "name": "kerberos-service",
+      "syslog_drain_url": "",
+      "tags": []
+    }
+  ]
+}
+
