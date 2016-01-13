@@ -16,14 +16,20 @@
 
 package org.trustedanalytics.store.hdfs;
 
+import org.trustedanalytics.store.ObjectStore;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.trustedanalytics.store.ObjectStore;
+import org.apache.hadoop.fs.permission.FsPermission;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 public class OrgSpecificHdfsObjectStore implements ObjectStore {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrgSpecificHdfsObjectStore.class);
 
     private final HdfsObjectStore hdfsObjectStore;
 
@@ -64,7 +70,22 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
         }
 
         private void prepareDir(Path path) throws IOException {
-            hdfs.mkdirs(path);
+            LOGGER.info("prepare dir " + path);
+            if (hdfs.exists(path)) {
+                LOGGER.info("dir exists");
+            } else {
+                FsPermission requiredPermission = FsPermissionHelper.getPermission770();
+
+                LOGGER.info("dir not exist, try to make it with permission " + requiredPermission);
+                hdfs.mkdirs(path, requiredPermission);
+                FsPermission actualPermission = hdfs.getFileStatus(path).getPermission();
+                LOGGER.info("actual permission " + actualPermission);
+
+                LOGGER.info("try to change permission to " + requiredPermission);
+                hdfs.setPermission(path, requiredPermission);
+                actualPermission = hdfs.getFileStatus(path).getPermission();
+                LOGGER.info("actual permission after change " + actualPermission);
+            }
         }
     }
 }

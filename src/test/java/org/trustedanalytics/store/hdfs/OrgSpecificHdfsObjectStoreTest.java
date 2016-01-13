@@ -23,6 +23,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 import java.io.IOException;
 
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -31,23 +32,40 @@ import static org.mockito.Mockito.when;
 public class OrgSpecificHdfsObjectStoreTest {
 
     private static final String URL = "hdfs://nameservice1/some_dir/";
+    private static final Path PATH = new Path(URL);
+
+    private FileSystem fs = mock(FileSystem.class, RETURNS_DEEP_STUBS);
 
     @Test
-    public void createOrgSpecificHdfsObjectStore_fileSystemWorks_directoryCreated()
+    public void createOrgSpecificHdfsObjectStore_directoryExists_nothingSpecial()
         throws IOException {
 
-        FileSystem fs = mock(FileSystem.class);
+        when(fs.exists(PATH)).thenReturn(true);
+
         new OrgSpecificHdfsObjectStore(fs, URL);
-        verify(fs).mkdirs(new Path(URL));
+
+        verify(fs).exists(PATH);
+    }
+
+    @Test
+    public void createOrgSpecificHdfsObjectStore_directoryNotExist_directoryCreated()
+        throws IOException {
+
+        when(fs.exists(PATH)).thenReturn(false);
+        when(fs.getFileStatus(PATH).getPermission()).thenReturn(null);
+
+        new OrgSpecificHdfsObjectStore(fs, URL);
+
+        verify(fs).exists(PATH);
+        verify(fs).mkdirs(PATH, FsPermissionHelper.getPermission770());
+        verify(fs).setPermission(PATH, FsPermissionHelper.getPermission770());
     }
 
     @Test(expected = IOException.class)
     public void createOrgSpecificHdfsObjectStore_fileSystemThrowsException_exceptionRethrown()
         throws IOException {
 
-        FileSystem fs = mock(FileSystem.class);
-        String url = "hdfs://nameservice1/some_dir/";
-        when(fs.mkdirs(new Path(URL))).thenThrow(IOException.class);
-        new OrgSpecificHdfsObjectStore(fs, url);
+        when(fs.exists(PATH)).thenThrow(IOException.class);
+        new OrgSpecificHdfsObjectStore(fs, URL);
     }
 }
