@@ -32,7 +32,7 @@ public class HdfsObjectStore implements ObjectStore {
 
     public static final int BUF_SIZE = 4096;
 
-    private static final String SAVED_DATASET_FILENAME = "/000000_1";
+    static final String SAVED_DATASET_FILENAME = "/000000_1";
 
     private FileSystem hdfs;
 
@@ -43,14 +43,19 @@ public class HdfsObjectStore implements ObjectStore {
         this.chrootPath = chrootPath;
     }
 
-    private String getRandomId() {
-        return UUID.randomUUID().toString() + SAVED_DATASET_FILENAME;
+    private ObjectId getRandomId() {
+        return new ObjectId(UUID.randomUUID(), SAVED_DATASET_FILENAME);
     }
 
     @Override
     public String save(InputStream input) throws IOException {
-        String objectId = getRandomId();
-        Path path = idToPath(objectId);
+        ObjectId objectId = saveObject(input);
+        return objectId.toString();
+    }
+
+    ObjectId saveObject(InputStream input) throws IOException {
+        ObjectId objectId = getRandomId();
+        Path path = idToPath(objectId.toString());
         removePathIfExists(path);
         try (OutputStream os = getOutputStream(path)) {
             IOUtils.copyBytes(input, os, BUF_SIZE);

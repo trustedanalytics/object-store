@@ -13,37 +13,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.trustedanalytics.store.hdfs;
 
 import org.trustedanalytics.store.ObjectStore;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.AclEntry;
+import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 
 public class OrgSpecificHdfsObjectStore implements ObjectStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OrgSpecificHdfsObjectStore.class);
 
+    private final String cfUser;
+    private final String hiveUser;
+    private final FileSystem hdfs;
+    private final Path chrootPath;
     private final HdfsObjectStore hdfsObjectStore;
 
-    public OrgSpecificHdfsObjectStore(FileSystem hdfs, String orgSpecificChrootUrl)
+    public OrgSpecificHdfsObjectStore(String cfUser, String hiveUser, FileSystem hdfs, String orgSpecificChrootUrl)
         throws IOException {
 
-        Path chrootPath = new Path(orgSpecificChrootUrl);
+        this.cfUser = cfUser;
+        this.hiveUser = hiveUser;
+        this.hdfs = hdfs;
+        this.chrootPath = new Path(orgSpecificChrootUrl);
         new Prerequisites(hdfs).prepareDir(chrootPath);
         this.hdfsObjectStore = new HdfsObjectStore(hdfs, chrootPath);
     }
 
     @Override
     public String save(InputStream input) throws IOException {
-        return hdfsObjectStore.save(input);
+        ObjectId objectId = hdfsObjectStore.saveObject(input);
+        setAClsForTechnicalUsers(objectId);
+        return objectId.toString();
+    }
+
+    private void setAClsForTechnicalUsers(ObjectId objectId) throws IOException {
+        LOGGER.debug("setAClsForTechnicalUsers objectId = [" + objectId + "]");
+        Path path = getPath(chrootPath, objectId.getDirectoryName().toString());
+        hdfs.modifyAclEntries(path,
+            FsPermissionHelper.getAclsForTechnicalUsers(Arrays.asList(cfUser, hiveUser), FsAction.READ_EXECUTE));
+        hdfs.getAclStatus(path).getEntries().stream().map(AclEntry::toString).forEach(LOGGER::debug);
+    }
+
+    private Path getPath(Path basicPath, String objectDirName) {
+        return new Path(basicPath + "/" + objectDirName);
     }
 
     @Override
@@ -85,6 +108,9 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
                 hdfs.setPermission(path, requiredPermission);
                 actualPermission = hdfs.getFileStatus(path).getPermission();
                 LOGGER.info("actual permission after change " + actualPermission);
+
+                hdfs.modifyAclEntries(path,
+                    FsPermissionHelper.getAclsForTechnicalUsers(Arrays.asList(cfUser, hiveUser), FsAction.EXECUTE));
             }
         }
     }

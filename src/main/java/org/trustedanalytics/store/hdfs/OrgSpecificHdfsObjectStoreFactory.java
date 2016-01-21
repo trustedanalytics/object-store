@@ -38,23 +38,30 @@ import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Optional;
 import java.util.UUID;
 
 public class OrgSpecificHdfsObjectStoreFactory {
 
     private final ServiceInstanceConfiguration hdfsConf;
     private final ServiceInstanceConfiguration krbConf;
+    private final String cfUser;
+    private final String hiveUser;
 
     public OrgSpecificHdfsObjectStoreFactory() throws IOException {
         AppConfiguration appConfiguration = Configurations.newInstanceFromEnv();
         hdfsConf = appConfiguration.getServiceConfig(ServiceType.HDFS_TYPE);
         krbConf  = appConfiguration.getServiceConfig("kerberos-service");
+        cfUser = krbConf.getProperty(Property.USER).orElse("cf");
+        hiveUser = Optional.ofNullable(System.getenv("HIVE_TECHNICAL_USER")).orElse("hive");
     }
 
     @VisibleForTesting
     OrgSpecificHdfsObjectStoreFactory(AppConfiguration appConfiguration) throws IOException {
         hdfsConf = appConfiguration.getServiceConfig(ServiceType.HDFS_TYPE);
         krbConf  = appConfiguration.getServiceConfig("kerberos-service");
+        cfUser = krbConf.getProperty(Property.USER).orElse("cf");
+        hiveUser = Optional.ofNullable(System.getenv("HIVE_TECHNICAL_USER")).orElse("hive");
     }
 
     public OrgSpecificHdfsObjectStore create(UUID org) {
@@ -70,7 +77,7 @@ public class OrgSpecificHdfsObjectStoreFactory {
 
     public OrgSpecificHdfsObjectStore create(UUID org, String OAuthToken) {
         try {
-            return new OrgSpecificHdfsObjectStore(getFileSystem(OAuthToken, org), getHdfsUri(org));
+            return new OrgSpecificHdfsObjectStore(cfUser, hiveUser, getFileSystem(OAuthToken, org), getHdfsUri(org));
         } catch (IOException e) {
             //TODO: must be thrown as 500 (?)
             e.printStackTrace();

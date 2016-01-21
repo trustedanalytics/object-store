@@ -15,11 +15,45 @@
  */
 package org.trustedanalytics.store.hdfs;
 
+import org.apache.hadoop.fs.permission.AclEntry;
+import org.apache.hadoop.fs.permission.AclEntryScope;
+import org.apache.hadoop.fs.permission.AclEntryType;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
+
+import java.util.List;
+
+import static java.util.stream.Collectors.toList;
 
 public class FsPermissionHelper {
     public static FsPermission getPermission770() {
         return new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.NONE);
+    }
+
+    public static List<AclEntry> getAclsForTechnicalUsers(List<String> users, FsAction fsAction) {
+        List<AclEntry> acls = users.stream().map(
+            name -> getAcl(AclEntryScope.ACCESS, fsAction, AclEntryType.USER, name)
+        ).collect(toList());
+        acls.add(getAcl(AclEntryScope.ACCESS, FsAction.ALL, AclEntryType.GROUP));
+        acls.add(getAcl(AclEntryScope.ACCESS, FsAction.ALL, AclEntryType.MASK));
+        return acls;
+    }
+
+    private static AclEntry getAcl(AclEntryScope entryScope, FsAction action, AclEntryType entryType, String name) {
+        return getAclBuilder(entryScope, action, entryType)
+            .setName(name)
+            .build();
+    }
+
+    private static AclEntry getAcl(AclEntryScope entryScope, FsAction action, AclEntryType entryType) {
+        return getAclBuilder(entryScope, action, entryType)
+            .build();
+    }
+
+    private static AclEntry.Builder getAclBuilder(AclEntryScope entryScope, FsAction action, AclEntryType entryType) {
+        return new AclEntry.Builder()
+            .setScope(entryScope)
+            .setPermission(action)
+            .setType(entryType);
     }
 }

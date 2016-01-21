@@ -23,17 +23,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.NoSuchElementException;
 
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Matchers.eq;
-
-import org.trustedanalytics.store.hdfs.HdfsObjectStore;
-
 
 public class HdfsObjectStoreTest {
 
@@ -60,6 +59,12 @@ public class HdfsObjectStoreTest {
     @Test public void save_element_fullpath() throws IOException {
         String id = ob_store.save(new byte[0]);
         Assert.assertThat(id, endsWith("000000_1"));
+    }
+
+    @Test public void saveObject_element_fullpath() throws IOException {
+        ObjectId id = ob_store.saveObject(new ByteArrayInputStream(new byte[0]));
+        Assert.assertThat(id.getDirectoryName(), notNullValue());
+        Assert.assertThat(id.getFileName(), endsWith("000000_1"));
     }
 
     @Test public void remove_oldObjectId_parentFolderIsSafe() throws IOException {
