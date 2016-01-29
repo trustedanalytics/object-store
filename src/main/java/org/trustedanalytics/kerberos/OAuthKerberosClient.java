@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.trustedanalytics.store.hdfs;
+package org.trustedanalytics.kerberos;
 
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
+import org.trustedanalytics.hadoop.config.client.ServiceInstanceConfiguration;
+import org.trustedanalytics.hadoop.config.client.oauth.TapOauthToken;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
+import org.apache.hadoop.conf.Configuration;
 
 import javax.security.auth.login.LoginException;
+import java.io.IOException;
 
-public interface FileSystemFactory {
-
-  FileSystem getFileSystem()
-      throws IOException, LoginException, InterruptedException, URISyntaxException;
-
-  Path getChrootedPath() throws IOException;
-
+public interface OAuthKerberosClient {
+    void loginIfKerberosEnabled(Configuration hdfsConf, ServiceInstanceConfiguration krbConf, TapOauthToken jwtToken)
+            throws LoginException, IOException;
 }

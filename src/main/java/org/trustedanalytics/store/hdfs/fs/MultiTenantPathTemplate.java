@@ -1,0 +1,35 @@
+/**
+ * Copyright (c) 2015 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.trustedanalytics.store.hdfs.fs;
+
+import com.google.common.collect.ImmutableMap;
+import org.apache.commons.lang.text.StrSubstitutor;
+
+import java.util.UUID;
+
+class MultiTenantPathTemplate {
+    private static final String ORG_PLACEHOLDER = "organization";
+    private static final String PLACEHOLDER_PREFIX = "%{";
+    private static final String PLACEHOLDER_SUFIX = "}";
+
+    private MultiTenantPathTemplate() {
+    }
+
+    public static String resolveOrg(String url, UUID org) {
+        ImmutableMap<String, UUID> values = ImmutableMap.of(ORG_PLACEHOLDER, org);
+        return StrSubstitutor.replace(url, values, PLACEHOLDER_PREFIX, PLACEHOLDER_SUFIX);
+    }
+}

@@ -16,6 +16,7 @@
 package org.trustedanalytics.store.hdfs;
 
 import org.trustedanalytics.store.ObjectStore;
+import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
 
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -28,6 +29,8 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class OrgSpecificHdfsObjectStore implements ObjectStore {
 
@@ -40,13 +43,13 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
     private final HdfsObjectStore hdfsObjectStore;
 
     public OrgSpecificHdfsObjectStore(String cfUser, String hiveUser, FileSystem hdfs, String orgSpecificChrootUrl)
-        throws IOException {
+            throws IOException {
 
         this.cfUser = cfUser;
         this.hiveUser = hiveUser;
         this.hdfs = hdfs;
         this.chrootPath = new Path(orgSpecificChrootUrl);
-        new Prerequisites(hdfs).prepareDir(chrootPath);
+        ensureDirExistsWithProperPermissions();
         this.hdfsObjectStore = new HdfsObjectStore(hdfs, chrootPath);
     }
 
@@ -61,8 +64,10 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
         LOGGER.debug("setAClsForTechnicalUsers objectId = [" + objectId + "]");
         Path path = getPath(chrootPath, objectId.getDirectoryName().toString());
         hdfs.modifyAclEntries(path,
-            FsPermissionHelper.getAclsForTechnicalUsers(Arrays.asList(cfUser, hiveUser), FsAction.READ_EXECUTE));
-        hdfs.getAclStatus(path).getEntries().stream().map(AclEntry::toString).forEach(LOGGER::debug);
+                FsPermissionHelper.getAclsForTechnicalUsers(Arrays.asList(cfUser, hiveUser), FsAction.READ_EXECUTE));
+
+        List<AclEntry> actualAcls = hdfs.getAclStatus(path).getEntries();
+        LOGGER.debug("ACLs for '" + objectId + "': " + aclsToString(actualAcls));
     }
 
     private Path getPath(Path basicPath, String objectDirName) {
@@ -84,34 +89,42 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
         return hdfsObjectStore.getId();
     }
 
-    private class Prerequisites {
-
-        private final FileSystem hdfs;
-
-        private Prerequisites(FileSystem hdfs) {
-            this.hdfs = hdfs;
+    private void ensureDirExistsWithProperPermissions() throws IOException {
+        if (hdfs.exists(chrootPath)) {
+            LOGGER.info("dir '{}' already exists", chrootPath);
+        } else {
+            LOGGER.info("dir '{}' does not exist, try to make it", chrootPath);
+            hdfs.mkdirs(chrootPath);
+            ensurePermissionsAreCorrect();
+            ensureAclsAreCorrect();
         }
+    }
 
-        private void prepareDir(Path path) throws IOException {
-            LOGGER.info("prepare dir " + path);
-            if (hdfs.exists(path)) {
-                LOGGER.info("dir exists");
-            } else {
-                FsPermission requiredPermission = FsPermissionHelper.getPermission770();
+    private void ensurePermissionsAreCorrect() throws IOException {
+        FsPermission requiredPermission = FsPermissionHelper.permission770;
+        LOGGER.info("try to set permission to " + requiredPermission);
+        hdfs.setPermission(chrootPath, requiredPermission);
 
-                LOGGER.info("dir not exist, try to make it with permission " + requiredPermission);
-                hdfs.mkdirs(path, requiredPermission);
-                FsPermission actualPermission = hdfs.getFileStatus(path).getPermission();
-                LOGGER.info("actual permission " + actualPermission);
-
-                LOGGER.info("try to change permission to " + requiredPermission);
-                hdfs.setPermission(path, requiredPermission);
-                actualPermission = hdfs.getFileStatus(path).getPermission();
-                LOGGER.info("actual permission after change " + actualPermission);
-
-                hdfs.modifyAclEntries(path,
-                    FsPermissionHelper.getAclsForTechnicalUsers(Arrays.asList(cfUser, hiveUser), FsAction.EXECUTE));
-            }
+        //checking permission because 'setPermission' method does not guarantee to throw on error
+        FsPermission actualPermission = hdfs.getFileStatus(chrootPath).getPermission();
+        LOGGER.info("actual permission after set " + actualPermission);
+        if (!requiredPermission.equals(actualPermission)) {
+            throw new IOException("Cannot change permissions for " + chrootPath);
         }
+    }
+
+    private void ensureAclsAreCorrect() throws IOException {
+        List<AclEntry> requiredAcls =
+                FsPermissionHelper.getAclsForTechnicalUsers(Arrays.asList(cfUser, hiveUser), FsAction.EXECUTE);
+
+        LOGGER.info("try to set acls to " + aclsToString(requiredAcls));
+        hdfs.modifyAclEntries(chrootPath, requiredAcls);
+
+        List<AclEntry> actualAcls = hdfs.getAclStatus(chrootPath).getEntries();
+        LOGGER.info("actual Acls after set " + aclsToString(actualAcls));
+    }
+
+    private String aclsToString(List<AclEntry> requiredAcls) {
+        return requiredAcls.stream().map(AclEntry::toString).collect(Collectors.joining(", "));
     }
 }

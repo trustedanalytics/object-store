@@ -15,6 +15,20 @@
  */
 package org.trustedanalytics.store;
 
+import org.trustedanalytics.hadoop.config.client.AppConfiguration;
+import org.trustedanalytics.hadoop.config.client.Configurations;
+import org.trustedanalytics.hadoop.config.client.ServiceInstanceConfiguration;
+import org.trustedanalytics.hadoop.config.client.ServiceType;
+import org.trustedanalytics.kerberos.TapOAuthKerberosClient;
+import org.trustedanalytics.store.hdfs.HdfsObjectStore;
+import org.trustedanalytics.store.hdfs.OrgSpecificHdfsObjectStoreFactory;
+import org.trustedanalytics.store.hdfs.fs.ApacheFileSystemFactory;
+import org.trustedanalytics.store.hdfs.fs.MultiTenantFileSystemFactory;
+import org.trustedanalytics.store.hdfs.fs.OAuthSecuredFileSystemFactory;
+import org.trustedanalytics.store.hdfs.fs.SingleTenantFileSystemFactory;
+import org.trustedanalytics.store.s3.S3ObjectStore;
+import org.trustedanalytics.store.s3.S3ServiceInfo;
+
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
@@ -25,22 +39,16 @@ import org.springframework.cloud.Cloud;
 import org.springframework.cloud.CloudFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
-import org.trustedanalytics.hadoop.config.client.Configurations;
-import org.trustedanalytics.store.hdfs.FileSystemFactoryImpl;
-import org.trustedanalytics.store.hdfs.HdfsObjectStore;
-import org.trustedanalytics.store.hdfs.OrgSpecificHdfsObjectStoreFactory;
-import org.trustedanalytics.store.s3.S3ObjectStore;
-import org.trustedanalytics.store.s3.S3ServiceInfo;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.UUID;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 @org.springframework.context.annotation.Configuration
 public class ObjectStoreConfiguration {
+
+    private static final String KERBEROS_SERVICE_NAME = "kerberos-service";
 
     @Bean
     @Profile("default")
@@ -55,17 +63,16 @@ public class ObjectStoreConfiguration {
         Cloud cloud = cloudFactory.getCloud();
         S3ServiceInfo s3ServiceInfo = (S3ServiceInfo) cloud.getServiceInfo("S3-serv-instance");
         AWSCredentials awsCredentials =
-            new BasicAWSCredentials(s3ServiceInfo.getAccessKey(), s3ServiceInfo.getSecretKey());
+                new BasicAWSCredentials(s3ServiceInfo.getAccessKey(), s3ServiceInfo.getSecretKey());
         AmazonS3 amazonS3 = new AmazonS3Client(awsCredentials);
         return new S3ObjectStore(amazonS3, s3ServiceInfo.getBucket());
     }
 
     @Bean
     @Profile("hdfs")
-    public ObjectStore hdfsObjectStore() throws IOException, InterruptedException,
-        URISyntaxException, LoginException {
-        FileSystemFactoryImpl fsFactory =
-            new FileSystemFactoryImpl(Configurations.newInstanceFromEnv());
+    public ObjectStore hdfsObjectStore() throws IOException, InterruptedException, URISyntaxException, LoginException {
+        SingleTenantFileSystemFactory fsFactory =
+                new SingleTenantFileSystemFactory(Configurations.newInstanceFromEnv());
         FileSystem fs = fsFactory.getFileSystem();
         Path path = fsFactory.getChrootedPath();
         return new HdfsObjectStore(fs, path);
@@ -74,17 +81,27 @@ public class ObjectStoreConfiguration {
     //autowire this, if you want token to be automatically acquired from web context
     @Bean
     @Profile("multitenant-hdfs")
-    public Function<UUID, ObjectStore> multitenantHdfsObjectStoreSupplier() throws IOException {
-        OrgSpecificHdfsObjectStoreFactory factory = new OrgSpecificHdfsObjectStoreFactory();
-        return factory::create;
+    public ObjectStoreFactory<UUID> multitenantHdfsObjectStoreSupplier() throws IOException {
+        OrgSpecificHdfsObjectStoreFactory osFactory = getOSFactory();
+        return osFactory::create;
     }
 
     //autowire this, if you want to provide token with your own logic
     @Bean
     @Profile("multitenant-hdfs")
-    public BiFunction<UUID, String, ObjectStore> multitenantHdfsObjectStoreFactory()
-        throws IOException {
-        OrgSpecificHdfsObjectStoreFactory factory = new OrgSpecificHdfsObjectStoreFactory();
-        return factory::create;
+    public TokenizedObjectStoreFactory<UUID, String> multitenantHdfsObjectStoreFactory()
+            throws IOException {
+        OrgSpecificHdfsObjectStoreFactory osFactory = getOSFactory();
+        return osFactory::create;
+    }
+
+    private OrgSpecificHdfsObjectStoreFactory getOSFactory() throws IOException {
+        AppConfiguration appConfiguration = Configurations.newInstanceFromEnv();
+        ServiceInstanceConfiguration hdfsConf = appConfiguration.getServiceConfig(ServiceType.HDFS_TYPE);
+        ServiceInstanceConfiguration krbConf = appConfiguration.getServiceConfig(KERBEROS_SERVICE_NAME);
+        OAuthSecuredFileSystemFactory fileSystemFactory =
+                new MultiTenantFileSystemFactory(hdfsConf, krbConf, new TapOAuthKerberosClient(),
+                        new ApacheFileSystemFactory());
+        return new OrgSpecificHdfsObjectStoreFactory(fileSystemFactory, krbConf);
     }
 }
