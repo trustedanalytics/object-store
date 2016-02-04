@@ -17,6 +17,7 @@ package org.trustedanalytics.store.hdfs;
 
 import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.AclEntry;
@@ -28,7 +29,6 @@ import org.mockito.ArgumentMatcher;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.hamcrest.Matchers.endsWith;
@@ -47,8 +47,9 @@ public class OrgSpecificHdfsObjectStoreTest {
 
     private static final String CF_USER = "testCF";
     private static final String HIVE_USER = "hiveUSER";
+    private static final ImmutableList<String> TECHNICAL_USERS = ImmutableList.of(CF_USER, HIVE_USER);
     private static final List<AclEntry> CF_AND_HIVE_EXECUTE_ACLS =
-            FsPermissionHelper.getAclsForTechnicalUsers(Arrays.asList(CF_USER, HIVE_USER), FsAction.EXECUTE);
+            FsPermissionHelper.getAclsForTechnicalUsers(TECHNICAL_USERS, FsAction.EXECUTE);
     private static final String URL = "hdfs://nameservice1/some_dir/";
     private static final Path PATH = new Path(URL);
     private static final String UUID_PATTERN = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
@@ -59,7 +60,7 @@ public class OrgSpecificHdfsObjectStoreTest {
     public void new_directoryExists_nothingSpecial() throws IOException {
         when(fs.exists(PATH)).thenReturn(true);
 
-        new OrgSpecificHdfsObjectStore(CF_USER, HIVE_USER, fs, URL);
+        new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
 
         verify(fs, atLeastOnce()).exists(PATH);
     }
@@ -70,7 +71,7 @@ public class OrgSpecificHdfsObjectStoreTest {
         when(fs.getFileStatus(PATH).getPermission()).thenReturn(FsPermissionHelper.permission770);
         when(fs.getAclStatus(PATH).getEntries()).thenReturn(CF_AND_HIVE_EXECUTE_ACLS);
 
-        new OrgSpecificHdfsObjectStore(CF_USER, HIVE_USER, fs, URL);
+        new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
 
         verify(fs, atLeastOnce()).mkdirs(PATH);
         verify(fs, atLeastOnce()).setPermission(PATH, FsPermissionHelper.permission770);
@@ -82,7 +83,7 @@ public class OrgSpecificHdfsObjectStoreTest {
         when(fs.exists(PATH)).thenReturn(false);
         when(fs.mkdirs(PATH)).thenThrow(new IOException());
 
-        new OrgSpecificHdfsObjectStore(CF_USER, HIVE_USER, fs, URL);
+        new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
     }
 
     @Test(expected = IOException.class)
@@ -90,7 +91,7 @@ public class OrgSpecificHdfsObjectStoreTest {
         when(fs.exists(PATH)).thenReturn(false);
         doThrow(new IOException()).when(fs).setPermission(PATH, FsPermissionHelper.permission770);
 
-        new OrgSpecificHdfsObjectStore(CF_USER, HIVE_USER, fs, URL);
+        new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
     }
 
     @Test(expected = IOException.class)
@@ -98,7 +99,7 @@ public class OrgSpecificHdfsObjectStoreTest {
         when(fs.exists(PATH)).thenReturn(false);
         when(fs.getFileStatus(PATH).getPermission()).thenReturn(FsPermission.getDefault());
 
-        new OrgSpecificHdfsObjectStore(CF_USER, HIVE_USER, fs, URL);
+        new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
     }
 
     @Test(expected = IOException.class)
@@ -107,7 +108,7 @@ public class OrgSpecificHdfsObjectStoreTest {
         when(fs.getFileStatus(PATH).getPermission()).thenReturn(FsPermissionHelper.permission770);
         doThrow(new IOException()).when(fs).modifyAclEntries(PATH, CF_AND_HIVE_EXECUTE_ACLS);
 
-        new OrgSpecificHdfsObjectStore(CF_USER, HIVE_USER, fs, URL);
+        new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
     }
 
     @Test
@@ -115,14 +116,13 @@ public class OrgSpecificHdfsObjectStoreTest {
         when(fs.exists(PATH)).thenReturn(true);
         when(fs.getAclStatus(startsWith(PATH)).getEntries()).thenReturn(CF_AND_HIVE_EXECUTE_ACLS);
 
-        OrgSpecificHdfsObjectStore objectStore = new OrgSpecificHdfsObjectStore(CF_USER, HIVE_USER, fs, URL);
+        OrgSpecificHdfsObjectStore objectStore = new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
 
         String objectId = objectStore.save(new byte[0]);
         assertThat(objectId, endsWith("000000_1"));
 
         verify(fs).modifyAclEntries(pathValidAndStartsWith(URL),
-                eq(FsPermissionHelper
-                        .getAclsForTechnicalUsers(Arrays.asList(CF_USER, HIVE_USER), FsAction.READ_EXECUTE)));
+                eq(FsPermissionHelper.getAclsForTechnicalUsers(TECHNICAL_USERS, FsAction.READ_EXECUTE)));
     }
 
     private Path startsWith(Path expectedPrefix) {

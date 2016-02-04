@@ -18,6 +18,7 @@ package org.trustedanalytics.store.hdfs;
 import org.trustedanalytics.store.ObjectStore;
 import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.AclEntry;
@@ -28,7 +29,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,17 +36,15 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(OrgSpecificHdfsObjectStore.class);
 
-    private final String cfUser;
-    private final String hiveUser;
+    private final ImmutableList<String> technicalUsers;
     private final FileSystem hdfs;
     private final Path chrootPath;
     private final HdfsObjectStore hdfsObjectStore;
 
-    public OrgSpecificHdfsObjectStore(String cfUser, String hiveUser, FileSystem hdfs, String orgSpecificChrootUrl)
+    public OrgSpecificHdfsObjectStore(ImmutableList<String> technicalUsers, FileSystem hdfs, String orgSpecificChrootUrl)
             throws IOException {
 
-        this.cfUser = cfUser;
-        this.hiveUser = hiveUser;
+        this.technicalUsers = technicalUsers;
         this.hdfs = hdfs;
         this.chrootPath = new Path(orgSpecificChrootUrl);
         ensureDirExistsWithProperPermissions();
@@ -64,7 +62,7 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
         LOGGER.debug("setAClsForTechnicalUsers objectId = [" + objectId + "]");
         Path path = getPath(chrootPath, objectId.getDirectoryName().toString());
         hdfs.modifyAclEntries(path,
-                FsPermissionHelper.getAclsForTechnicalUsers(Arrays.asList(cfUser, hiveUser), FsAction.READ_EXECUTE));
+                FsPermissionHelper.getAclsForTechnicalUsers(technicalUsers, FsAction.READ_EXECUTE));
 
         List<AclEntry> actualAcls = hdfs.getAclStatus(path).getEntries();
         LOGGER.debug("ACLs for '" + objectId + "': " + aclsToString(actualAcls));
@@ -115,7 +113,7 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
 
     private void ensureAclsAreCorrect() throws IOException {
         List<AclEntry> requiredAcls =
-                FsPermissionHelper.getAclsForTechnicalUsers(Arrays.asList(cfUser, hiveUser), FsAction.EXECUTE);
+                FsPermissionHelper.getAclsForTechnicalUsers(technicalUsers, FsAction.EXECUTE);
 
         LOGGER.info("try to set acls to " + aclsToString(requiredAcls));
         hdfs.modifyAclEntries(chrootPath, requiredAcls);

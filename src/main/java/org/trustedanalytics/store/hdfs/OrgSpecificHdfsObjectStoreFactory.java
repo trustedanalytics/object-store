@@ -20,6 +20,7 @@ import org.trustedanalytics.hadoop.config.client.Property;
 import org.trustedanalytics.hadoop.config.client.ServiceInstanceConfiguration;
 import org.trustedanalytics.store.hdfs.fs.OAuthSecuredFileSystemFactory;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.fs.FileSystem;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,20 +37,28 @@ public class OrgSpecificHdfsObjectStoreFactory {
     private static final String CF_DEFAULT_USER = "cf";
     private static final String HIVE_USER_ENV_VARIABLE_NAME = "HIVE_TECHNICAL_USER";
     private static final String HIVE_DEFAULT_USER = "hive";
+    private static final String ARCADIA_USER_ENV_VARIABLE_NAME = "ARCADIA_TECHNICAL_USER";
+    private static final String ARCADIA_DEFAULT_USER = "arcadia-user";
 
     private final OAuthSecuredFileSystemFactory fileSystemFactory;
-    private final String cfUser;
-    private final String hiveUser;
+    private final ImmutableList<String> technicalUsers;
 
     public OrgSpecificHdfsObjectStoreFactory(OAuthSecuredFileSystemFactory fileSystemFactory,
             ServiceInstanceConfiguration krbConf) throws IOException {
 
         this.fileSystemFactory = fileSystemFactory;
-        cfUser = krbConf.getProperty(Property.USER)
-                .orElse(CF_DEFAULT_USER);
-        hiveUser = Optional.ofNullable(System.getenv(HIVE_USER_ENV_VARIABLE_NAME))
-                .orElse(HIVE_DEFAULT_USER);
+        this.technicalUsers = getTechnicalUsers(krbConf);
     }
+
+  private ImmutableList<String> getTechnicalUsers(ServiceInstanceConfiguration krbConf) {
+    String cfUser = krbConf.getProperty(Property.USER)
+        .orElse(CF_DEFAULT_USER);
+    String hiveUser = Optional.ofNullable(System.getenv(HIVE_USER_ENV_VARIABLE_NAME))
+        .orElse(HIVE_DEFAULT_USER);
+    String arcadiaUser = Optional.ofNullable(System.getenv(ARCADIA_USER_ENV_VARIABLE_NAME))
+        .orElse(ARCADIA_DEFAULT_USER);
+    return ImmutableList.of(cfUser, hiveUser, arcadiaUser);
+  }
 
     public OrgSpecificHdfsObjectStore create(UUID org) throws IOException, InterruptedException, LoginException {
         return create(org, getOAuthToken());
@@ -59,7 +68,7 @@ public class OrgSpecificHdfsObjectStoreFactory {
             throws IOException, InterruptedException, LoginException {
         FileSystem fs = fileSystemFactory.getFileSystem(org, oAuthToken);
         String uri = fileSystemFactory.getHdfsUri(org);
-        return new OrgSpecificHdfsObjectStore(cfUser, hiveUser, fs, uri);
+        return new OrgSpecificHdfsObjectStore(technicalUsers, fs, uri);
     }
 
     private String getOAuthToken() {
