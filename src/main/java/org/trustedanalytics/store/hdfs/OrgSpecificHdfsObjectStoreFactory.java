@@ -39,6 +39,8 @@ public class OrgSpecificHdfsObjectStoreFactory {
     private static final String HIVE_DEFAULT_USER = "hive";
     private static final String ARCADIA_USER_ENV_VARIABLE_NAME = "ARCADIA_TECHNICAL_USER";
     private static final String ARCADIA_DEFAULT_USER = "arcadia-user";
+    private static final String VCAP_USER_ENV_VARIABLE_NAME = "vcap_TECHNICAL_USER";
+    private static final String VCAP_DEFAULT_USER = "vcap";
 
     private final OAuthSecuredFileSystemFactory fileSystemFactory;
     private final ImmutableList<String> technicalUsers;
@@ -50,15 +52,17 @@ public class OrgSpecificHdfsObjectStoreFactory {
         this.technicalUsers = getTechnicalUsers(krbConf);
     }
 
-  private ImmutableList<String> getTechnicalUsers(ServiceInstanceConfiguration krbConf) {
-    String cfUser = krbConf.getProperty(Property.USER)
-        .orElse(CF_DEFAULT_USER);
-    String hiveUser = Optional.ofNullable(System.getenv(HIVE_USER_ENV_VARIABLE_NAME))
-        .orElse(HIVE_DEFAULT_USER);
-    String arcadiaUser = Optional.ofNullable(System.getenv(ARCADIA_USER_ENV_VARIABLE_NAME))
-        .orElse(ARCADIA_DEFAULT_USER);
-    return ImmutableList.of(cfUser, hiveUser, arcadiaUser);
-  }
+    private ImmutableList<String> getTechnicalUsers(ServiceInstanceConfiguration krbConf) {
+        String cfUser = krbConf.getProperty(Property.USER)
+            .orElse(CF_DEFAULT_USER);
+        String hiveUser = Optional.ofNullable(System.getenv(HIVE_USER_ENV_VARIABLE_NAME))
+            .orElse(HIVE_DEFAULT_USER);
+        String arcadiaUser = Optional.ofNullable(System.getenv(ARCADIA_USER_ENV_VARIABLE_NAME))
+            .orElse(ARCADIA_DEFAULT_USER);
+        String vcapUser = Optional.ofNullable(System.getenv(VCAP_USER_ENV_VARIABLE_NAME))
+            .orElse(VCAP_DEFAULT_USER);
+        return ImmutableList.of(cfUser, hiveUser, arcadiaUser, vcapUser);
+    }
 
     public OrgSpecificHdfsObjectStore create(UUID org) throws IOException, InterruptedException, LoginException {
         return create(org, getOAuthToken());

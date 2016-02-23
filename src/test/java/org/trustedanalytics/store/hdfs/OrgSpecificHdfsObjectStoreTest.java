@@ -47,8 +47,9 @@ public class OrgSpecificHdfsObjectStoreTest {
 
     private static final String CF_USER = "testCF";
     private static final String HIVE_USER = "hiveUSER";
-    private static final ImmutableList<String> TECHNICAL_USERS = ImmutableList.of(CF_USER, HIVE_USER);
-    private static final List<AclEntry> CF_AND_HIVE_EXECUTE_ACLS =
+    private static final String VCAP_USER = "vcapUSER";
+    private static final ImmutableList<String> TECHNICAL_USERS = ImmutableList.of(CF_USER, HIVE_USER, VCAP_USER);
+    private static final List<AclEntry> CF_VCAP_HIVE_EXECUTE_ACLS =
             FsPermissionHelper.getAclsForTechnicalUsers(TECHNICAL_USERS, FsAction.EXECUTE);
     private static final String URL = "hdfs://nameservice1/some_dir/";
     private static final Path PATH = new Path(URL);
@@ -69,13 +70,13 @@ public class OrgSpecificHdfsObjectStoreTest {
     public void new_directoryNotExist_dirMadePermissionSetAclSet() throws IOException {
         when(fs.exists(PATH)).thenReturn(false);
         when(fs.getFileStatus(PATH).getPermission()).thenReturn(FsPermissionHelper.permission770);
-        when(fs.getAclStatus(PATH).getEntries()).thenReturn(CF_AND_HIVE_EXECUTE_ACLS);
+        when(fs.getAclStatus(PATH).getEntries()).thenReturn(CF_VCAP_HIVE_EXECUTE_ACLS);
 
         new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
 
         verify(fs, atLeastOnce()).mkdirs(PATH);
         verify(fs, atLeastOnce()).setPermission(PATH, FsPermissionHelper.permission770);
-        verify(fs, atLeastOnce()).modifyAclEntries(PATH, CF_AND_HIVE_EXECUTE_ACLS);
+        verify(fs, atLeastOnce()).modifyAclEntries(PATH, CF_VCAP_HIVE_EXECUTE_ACLS);
     }
 
     @Test(expected = IOException.class)
@@ -106,7 +107,7 @@ public class OrgSpecificHdfsObjectStoreTest {
     public void new_directoryNotExistSetAclsError_exceptionRethrown() throws IOException {
         when(fs.exists(PATH)).thenReturn(false);
         when(fs.getFileStatus(PATH).getPermission()).thenReturn(FsPermissionHelper.permission770);
-        doThrow(new IOException()).when(fs).modifyAclEntries(PATH, CF_AND_HIVE_EXECUTE_ACLS);
+        doThrow(new IOException()).when(fs).modifyAclEntries(PATH, CF_VCAP_HIVE_EXECUTE_ACLS);
 
         new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
     }
@@ -114,7 +115,7 @@ public class OrgSpecificHdfsObjectStoreTest {
     @Test
     public void save_inputBytesGiven_directoryCreatedWithProperACLs() throws IOException {
         when(fs.exists(PATH)).thenReturn(true);
-        when(fs.getAclStatus(startsWith(PATH)).getEntries()).thenReturn(CF_AND_HIVE_EXECUTE_ACLS);
+        when(fs.getAclStatus(startsWith(PATH)).getEntries()).thenReturn(CF_VCAP_HIVE_EXECUTE_ACLS);
 
         OrgSpecificHdfsObjectStore objectStore = new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
 
