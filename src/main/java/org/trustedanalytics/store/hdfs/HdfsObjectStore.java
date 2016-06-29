@@ -15,20 +15,32 @@
  */
 package org.trustedanalytics.store.hdfs;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Collections;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableList;
+import org.apache.hadoop.fs.permission.AclEntry;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.trustedanalytics.store.ObjectStore;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.Progressable;
 import org.apache.commons.lang.StringUtils;
+import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
 
 public class HdfsObjectStore implements ObjectStore {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(HdfsObjectStore.class);
 
     public static final int BUF_SIZE = 4096;
 
@@ -38,25 +50,34 @@ public class HdfsObjectStore implements ObjectStore {
 
     private Path chrootPath;
 
+    private final ImmutableList<String> technicalUsers;
+
+    public HdfsObjectStore(ImmutableList<String> technicalUsers, FileSystem hdfs, Path chrootPath) {
+        this.hdfs = hdfs;
+        this.chrootPath = chrootPath;
+        this.technicalUsers = technicalUsers;
+    }
+
     public HdfsObjectStore(FileSystem hdfs, Path chrootPath) {
         this.hdfs = hdfs;
         this.chrootPath = chrootPath;
+        this.technicalUsers = ImmutableList.of();
+    }
+
+    @Override
+    public String save(InputStream input) throws IOException {
+        return saveObject(input).toString();
     }
 
     private ObjectId getRandomId() {
         return new ObjectId(UUID.randomUUID(), SAVED_DATASET_FILENAME);
     }
 
-    @Override
-    public String save(InputStream input) throws IOException {
-        ObjectId objectId = saveObject(input);
-        return objectId.toString();
-    }
-
     ObjectId saveObject(InputStream input) throws IOException {
-        ObjectId objectId = getRandomId();
+        ObjectId objectId = createNewObjectDir();
+        setAClsForTechnicalUsers(objectId);
+
         Path path = idToPath(objectId.toString());
-        removePathIfExists(path);
         try (OutputStream os = getOutputStream(path)) {
             IOUtils.copyBytes(input, os, BUF_SIZE);
         }
@@ -74,7 +95,6 @@ public class HdfsObjectStore implements ObjectStore {
         } else {
             throw new NoSuchElementException();
         }
-
     }
 
     private void removePathIfExists(Path path) throws IOException {
@@ -92,12 +112,10 @@ public class HdfsObjectStore implements ObjectStore {
         });
     }
 
-    @Override
     public InputStream getContent(String objectId) throws IOException {
         return hdfs.open(idToPath(objectId));
     }
 
-    @Override
     public String getId() {
         return chrootPath.toString();
     }
@@ -109,5 +127,33 @@ public class HdfsObjectStore implements ObjectStore {
     private Path idToDirectoryPath(String id) {
         String directoryPath = StringUtils.removeEnd(id, SAVED_DATASET_FILENAME);
         return new Path(chrootPath + "/" + directoryPath);
+    }
+
+    private ObjectId createNewObjectDir() throws IOException {
+        ObjectId objectId = getRandomId();
+        removePathIfExists(idToPath(objectId.toString()));
+        hdfs.mkdirs(idToDirectoryPath(objectId.toString()));
+        return objectId;
+    }
+
+    private void setAClsForTechnicalUsers(ObjectId objectId) throws IOException {
+        LOGGER.debug("setAClsForTechnicalUsers objectId = [" + objectId + "]");
+        Path path = getPath(chrootPath, objectId.getDirectoryName().toString());
+
+        hdfs.modifyAclEntries(path,
+                FsPermissionHelper.getAclsForTechnicalUsers(technicalUsers, FsAction.READ_EXECUTE));
+        hdfs.modifyAclEntries(path,
+                FsPermissionHelper.getDefaultAclsForTechnicalUsers(technicalUsers, FsAction.READ_EXECUTE));
+
+        List<AclEntry> actualAcls = hdfs.getAclStatus(path).getEntries();
+        LOGGER.info("ACLs for '" + objectId + "': " + aclsToString(actualAcls));
+    }
+
+    private Path getPath(Path basicPath, String objectDirName) {
+        return new Path(basicPath + "/" + objectDirName);
+    }
+
+    private String aclsToString(List<AclEntry> requiredAcls) {
+        return requiredAcls.stream().map(AclEntry::toString).collect(Collectors.joining(", "));
     }
 }

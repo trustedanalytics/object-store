@@ -33,6 +33,15 @@ public class FsPermissionHelper {
     public static final FsPermission permission770
             = new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.NONE);
 
+    public static List<AclEntry> getDefaultAclsForTechnicalUsers(List<String> users, FsAction fsAction) {
+        List<AclEntry> acls = users.stream().map(
+                name -> getAcl(AclEntryScope.DEFAULT, fsAction, AclEntryType.USER, name)
+        ).collect(toList());
+        acls.add(getAcl(AclEntryScope.DEFAULT, FsAction.ALL, AclEntryType.GROUP));
+        acls.add(getAcl(AclEntryScope.DEFAULT, FsAction.ALL, AclEntryType.MASK));
+        return acls;
+    }
+
     public static List<AclEntry> getAclsForTechnicalUsers(List<String> users, FsAction fsAction) {
         List<AclEntry> acls = users.stream().map(
                 name -> getAcl(AclEntryScope.ACCESS, fsAction, AclEntryType.USER, name)

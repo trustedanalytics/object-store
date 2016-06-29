@@ -15,33 +15,48 @@
  */
 package org.trustedanalytics.store.hdfs;
 
+import com.google.common.collect.ImmutableList;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import static org.hamcrest.Matchers.endsWith;
+
+import org.apache.hadoop.fs.permission.AclEntry;
+import org.apache.hadoop.fs.permission.FsAction;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 
 public class HdfsObjectStoreTest {
 
-    private FileSystem fs;
+    private static final String CF_USER = "testCF";
+    private static final String HIVE_USER = "hiveUSER";
+    private static final String VCAP_USER = "vcapUSER";
+    private static final ImmutableList<String> TECHNICAL_USERS = ImmutableList.of(CF_USER, HIVE_USER, VCAP_USER);
+    private static final List<AclEntry> CF_VCAP_HIVE_EXECUTE_ACLS =
+            FsPermissionHelper.getAclsForTechnicalUsers(TECHNICAL_USERS, FsAction.EXECUTE);
+
+    private FileSystem fs = mock(FileSystem.class, RETURNS_DEEP_STUBS);
     private HdfsObjectStore ob_store;
 
-    @Before public void setUpMocks() {
-        fs = Mockito.mock(FileSystem.class);
-        ob_store = new HdfsObjectStore(fs, new Path("homeFolder"));
+    private static final String URL = "hdfs://nameservice1/some_dir/";
+    private static final Path PATH = new Path(URL);
+
+    @Before public void setUpMocks() throws IOException {
+        when(fs.getAclStatus(any(Path.class)).getEntries()).thenReturn(CF_VCAP_HIVE_EXECUTE_ACLS);
+        ob_store = new HdfsObjectStore(TECHNICAL_USERS, fs, new Path("homeFolder"));
     }
 
     @Test(expected = NoSuchElementException.class)

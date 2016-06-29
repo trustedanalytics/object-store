@@ -48,28 +48,12 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
         this.hdfs = hdfs;
         this.chrootPath = new Path(orgSpecificChrootUrl);
         ensureDirExistsWithProperPermissions();
-        this.hdfsObjectStore = new HdfsObjectStore(hdfs, chrootPath);
+        this.hdfsObjectStore = new HdfsObjectStore(technicalUsers, hdfs, chrootPath);
     }
 
     @Override
     public String save(InputStream input) throws IOException {
-        ObjectId objectId = hdfsObjectStore.saveObject(input);
-        setAClsForTechnicalUsers(objectId);
-        return objectId.toString();
-    }
-
-    private void setAClsForTechnicalUsers(ObjectId objectId) throws IOException {
-        LOGGER.debug("setAClsForTechnicalUsers objectId = [" + objectId + "]");
-        Path path = getPath(chrootPath, objectId.getDirectoryName().toString());
-        hdfs.modifyAclEntries(path,
-                FsPermissionHelper.getAclsForTechnicalUsers(technicalUsers, FsAction.READ_EXECUTE));
-
-        List<AclEntry> actualAcls = hdfs.getAclStatus(path).getEntries();
-        LOGGER.debug("ACLs for '" + objectId + "': " + aclsToString(actualAcls));
-    }
-
-    private Path getPath(Path basicPath, String objectDirName) {
-        return new Path(basicPath + "/" + objectDirName);
+        return hdfsObjectStore.saveObject(input).toString();
     }
 
     @Override
