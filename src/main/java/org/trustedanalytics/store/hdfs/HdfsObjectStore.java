@@ -15,28 +15,27 @@
  */
 package org.trustedanalytics.store.hdfs;
 
-import java.io.ByteArrayInputStream;
+import org.trustedanalytics.store.ObjectStore;
+import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
+
+import com.google.common.collect.ImmutableList;
+import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.permission.AclEntry;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.util.Progressable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import com.google.common.collect.ImmutableList;
-import org.apache.hadoop.fs.permission.AclEntry;
-import org.apache.hadoop.fs.permission.FsAction;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.trustedanalytics.store.ObjectStore;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.util.Progressable;
-import org.apache.commons.lang.StringUtils;
-import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
 
 public class HdfsObjectStore implements ObjectStore {
 
@@ -107,7 +106,7 @@ public class HdfsObjectStore implements ObjectStore {
         return hdfs.create(path, new Progressable() {
             @Override
             public void progress() {
-                // TODO: callback
+                //intentionally left empty
             }
         });
     }
