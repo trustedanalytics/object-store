@@ -27,11 +27,11 @@ import static java.util.stream.Collectors.toList;
 
 public class FsPermissionHelper {
 
-    private FsPermissionHelper() {
-    }
-
     public static final FsPermission permission770
             = new FsPermission(FsAction.ALL, FsAction.ALL, FsAction.NONE);
+
+    private FsPermissionHelper() {
+    }
 
     public static List<AclEntry> getDefaultAclsForTechnicalUsers(List<String> users, FsAction fsAction) {
         List<AclEntry> acls = users.stream().map(
