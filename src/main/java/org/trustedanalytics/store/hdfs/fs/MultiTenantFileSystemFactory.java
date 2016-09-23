@@ -26,6 +26,9 @@ import org.apache.hadoop.fs.FileSystem;
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class MultiTenantFileSystemFactory implements OAuthSecuredFileSystemFactory {
@@ -59,6 +62,6 @@ public class MultiTenantFileSystemFactory implements OAuthSecuredFileSystemFacto
 
     @Override
     public String getHdfsUri(UUID org) {
-        return MultiTenantPathTemplate.resolveOrg(hdfsConf.getProperty(Property.HDFS_URI).get(), org);
+      return MultiTenantPathTemplate.resolveOrg(hdfsConf.getProperty(Property.HDFS_URI).get(), org);
     }
 }

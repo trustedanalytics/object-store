@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 Intel Corporation
+ * Copyright (c) 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,27 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.trustedanalytics.store.hdfs;
+package org.trustedanalytics.store.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import lombok.Data;
 
 @Data
-@ConfigurationProperties(prefix = "kerberos")
-public class KerberosClientConfiguration {
-    private String kdc;
-    private String realm;
-    private String user;
-    private String pass;
-
-    @Override
-    public String toString() {
-        return "KerberosClientConfiguration{" +
-                "kdc='" + kdc + '\'' +
-                ", realm='" + realm + '\'' +
-                ", user='" + user + '\'' +
-                ", pass='" + pass + '\'' +
-                '}';
-    }
+@ConfigurationProperties(prefix = "hdfs")
+public class HdfsProperties {
+  private String configDir;
+  private String uri;
 }
