@@ -46,6 +46,6 @@ public class SimpleInstanceConfiguration implements ServiceInstanceConfiguration
     }
     
     public Optional<String> getProperty(final Property propertyLocation) throws IllegalStateException {
-        return Optional.of(this.properties.get(propertyLocation));
+        return Optional.ofNullable(this.properties.get(propertyLocation));
     }
 }

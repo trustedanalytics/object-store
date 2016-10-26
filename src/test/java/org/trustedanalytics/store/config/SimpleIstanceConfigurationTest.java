@@ -15,6 +15,8 @@
  */
 package org.trustedanalytics.store.config;
 
+import static com.github.npathai.hamcrestopt.OptionalMatchers.hasValue;
+import static com.github.npathai.hamcrestopt.OptionalMatchers.isEmpty;
 import static java.util.Collections.singletonMap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -47,8 +49,13 @@ public class SimpleIstanceConfigurationTest
     }
     
     @Test
-    public void testGetProperty() {
-        assertThat(configuration.getProperty(Property.HDFS_URI).get(), equalTo(hdfsUri));
+    public void testGetPropertyValueExists() {
+        assertThat(configuration.getProperty(Property.HDFS_URI), hasValue(hdfsUri));
+    }
+
+    @Test
+    public void testGetPropertyNoValue() {
+      assertThat(configuration.getProperty(Property.HADOOP_ZIP), isEmpty());
     }
     
     @Test
