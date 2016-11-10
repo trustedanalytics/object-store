@@ -146,6 +146,6 @@ public class ObjectStoreConfiguration {
     
     private static Configuration getHadoopConfiguration(String confDir) throws IOException {
       return Arrays.asList("core-site.xml", "hdfs-site.xml").stream()
-        .collect(Configuration::new, (c, f) -> c.addResource(new Path(confDir + f)), (c, d) -> {});
+        .collect(Configuration::new, (c, f) -> c.addResource(new Path(confDir, f)), (c, d) -> {});
     }
 }
