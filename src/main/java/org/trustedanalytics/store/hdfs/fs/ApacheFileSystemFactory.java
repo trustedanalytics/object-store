@@ -25,8 +25,8 @@ import java.net.URI;
 
 public class ApacheFileSystemFactory {
 
-    public FileSystem get(URI uri, Configuration hadoopConf, JwtToken jwtToken)
+    public FileSystem get(Configuration hadoopConf, JwtToken jwtToken)
             throws IOException, InterruptedException {
-        return FileSystem.get(uri, hadoopConf, jwtToken.getUserId());
+        return FileSystem.get(FileSystem.getDefaultUri(hadoopConf), hadoopConf, jwtToken.getUserId());
     }
 }

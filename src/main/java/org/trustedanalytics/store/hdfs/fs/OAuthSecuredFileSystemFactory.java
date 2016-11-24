@@ -23,7 +23,7 @@ import java.util.UUID;
 
 public interface OAuthSecuredFileSystemFactory {
 
-    FileSystem getFileSystem(UUID org, String oAuthToken) throws IOException, InterruptedException, LoginException;
+    FileSystem getFileSystem(String oAuthToken) throws IOException, InterruptedException, LoginException;
 
     String getHdfsUri(UUID org);
 }

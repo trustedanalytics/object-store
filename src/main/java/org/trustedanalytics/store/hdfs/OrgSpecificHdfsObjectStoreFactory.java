@@ -70,7 +70,7 @@ public class OrgSpecificHdfsObjectStoreFactory {
 
     public OrgSpecificHdfsObjectStore create(UUID org, String oAuthToken)
             throws IOException, InterruptedException, LoginException {
-        FileSystem fs = fileSystemFactory.getFileSystem(org, oAuthToken);
+        FileSystem fs = fileSystemFactory.getFileSystem(oAuthToken);
         String uri = fileSystemFactory.getHdfsUri(org);
         return new OrgSpecificHdfsObjectStore(technicalUsers, fs, uri);
     }

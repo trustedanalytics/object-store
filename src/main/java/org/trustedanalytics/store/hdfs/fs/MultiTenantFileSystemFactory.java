@@ -47,7 +47,7 @@ public class MultiTenantFileSystemFactory implements OAuthSecuredFileSystemFacto
     }
 
     @Override
-    public FileSystem getFileSystem(UUID org, String oAuthToken)
+    public FileSystem getFileSystem(String oAuthToken)
             throws IOException, InterruptedException, LoginException {
 
         //TODO: this code is from hadoop-utils (95%),
@@ -56,8 +56,7 @@ public class MultiTenantFileSystemFactory implements OAuthSecuredFileSystemFacto
         TapOauthToken jwtToken = new TapOauthToken(oAuthToken);
         Configuration hadoopConf = hdfsConf.asHadoopConfiguration();
         oAuthKerberosClient.loginIfKerberosEnabled(hadoopConf, krbConf, jwtToken);
-        URI uri = URI.create(getHdfsUri(org));
-        return apacheFileSystemFactory.get(uri, hadoopConf, jwtToken);
+        return apacheFileSystemFactory.get(hadoopConf, jwtToken);
     }
 
     @Override
