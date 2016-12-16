@@ -30,7 +30,6 @@ import org.springframework.security.oauth2.provider.authentication.OAuth2Authent
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
 import java.util.Optional;
-import java.util.UUID;
 
 public class OrgSpecificHdfsObjectStoreFactory {
 
@@ -64,11 +63,11 @@ public class OrgSpecificHdfsObjectStoreFactory {
         return ImmutableList.of(cfUser, hiveUser, arcadiaUser, vcapUser);
     }
 
-    public OrgSpecificHdfsObjectStore create(UUID org) throws IOException, InterruptedException, LoginException {
+    public OrgSpecificHdfsObjectStore create(String org) throws IOException, InterruptedException, LoginException {
         return create(org, getOAuthToken());
     }
 
-    public OrgSpecificHdfsObjectStore create(UUID org, String oAuthToken)
+    public OrgSpecificHdfsObjectStore create(String org, String oAuthToken)
             throws IOException, InterruptedException, LoginException {
         FileSystem fs = fileSystemFactory.getFileSystem(oAuthToken);
         String uri = fileSystemFactory.getHdfsUri(org);

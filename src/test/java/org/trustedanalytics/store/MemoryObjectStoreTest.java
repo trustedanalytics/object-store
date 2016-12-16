@@ -26,7 +26,6 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
-import org.trustedanalytics.store.MemoryObjectStore;
 import org.junit.Before;
 import org.junit.Test;
 

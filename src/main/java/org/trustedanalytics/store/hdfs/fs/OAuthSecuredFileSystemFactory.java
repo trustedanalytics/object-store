@@ -19,11 +19,10 @@ import org.apache.hadoop.fs.FileSystem;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
-import java.util.UUID;
 
 public interface OAuthSecuredFileSystemFactory {
 
     FileSystem getFileSystem(String oAuthToken) throws IOException, InterruptedException, LoginException;
 
-    String getHdfsUri(UUID org);
+    String getHdfsUri(String org);
 }

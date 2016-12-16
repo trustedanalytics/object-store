@@ -54,7 +54,6 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @org.springframework.context.annotation.Configuration
 @EnableConfigurationProperties({HdfsProperties.class, KerberosClientConfiguration.class})
@@ -99,14 +98,14 @@ public class ObjectStoreConfiguration {
     //autowire this, if you want token to be automatically acquired from web context
     @Bean
     @Profile("multitenant-hdfs")
-    public ObjectStoreFactory<UUID> multitenantHdfsObjectStoreSupplier(OrgSpecificHdfsObjectStoreFactory osFactory) throws IOException {
+    public ObjectStoreFactory<String> multitenantHdfsObjectStoreSupplier(OrgSpecificHdfsObjectStoreFactory osFactory) throws IOException {
         return osFactory::create;
     }
 
     //autowire this, if you want to provide token with your own logic
     @Bean
     @Profile("multitenant-hdfs")
-    public TokenizedObjectStoreFactory<UUID, String> multitenantHdfsObjectStoreFactory(OrgSpecificHdfsObjectStoreFactory osFactory)
+    public TokenizedObjectStoreFactory<String, String> multitenantHdfsObjectStoreFactory(OrgSpecificHdfsObjectStoreFactory osFactory)
             throws IOException {
         return osFactory::create;
     }

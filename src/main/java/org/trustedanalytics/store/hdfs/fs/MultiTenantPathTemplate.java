@@ -18,8 +18,6 @@ package org.trustedanalytics.store.hdfs.fs;
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.lang.text.StrSubstitutor;
 
-import java.util.UUID;
-
 class MultiTenantPathTemplate {
     private static final String ORG_PLACEHOLDER = "organization";
     private static final String PLACEHOLDER_PREFIX = "%{";
@@ -28,8 +26,8 @@ class MultiTenantPathTemplate {
     private MultiTenantPathTemplate() {
     }
 
-    public static String resolveOrg(String url, UUID org) {
-        ImmutableMap<String, UUID> values = ImmutableMap.of(ORG_PLACEHOLDER, org);
+    public static String resolveOrg(String url, String org) {
+        ImmutableMap<String, String> values = ImmutableMap.of(ORG_PLACEHOLDER, org);
         return StrSubstitutor.replace(url, values, PLACEHOLDER_PREFIX, PLACEHOLDER_SUFIX);
     }
 }

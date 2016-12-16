@@ -28,7 +28,6 @@ import org.mockito.Mock;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import java.io.IOException;
-import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -55,7 +54,7 @@ public class MultiTenantFileSystemFactoryTest {
         OAuthSecuredFileSystemFactory fsFactory = setup("/env_with_template.json");
 
         String hdfsUri =
-                fsFactory.getHdfsUri(UUID.fromString("50a99746-e1ce-47a3-a293-2d16070319c2"));
+                fsFactory.getHdfsUri("50a99746-e1ce-47a3-a293-2d16070319c2");
 
         assertThat(hdfsUri, equalTo(
                 "hdfs://localhost/org/50a99746-e1ce-47a3-a293-2d16070319c2/instances/1cfe7b45-1e07-4751-a853-78ef47a313cc/"));
@@ -66,7 +65,7 @@ public class MultiTenantFileSystemFactoryTest {
         OAuthSecuredFileSystemFactory fsFactory = setup("/env_without_template.json");
 
         String hdfsUri =
-                fsFactory.getHdfsUri(UUID.fromString("50a99746-e1ce-47a3-a293-2d16070319c2"));
+                fsFactory.getHdfsUri("50a99746-e1ce-47a3-a293-2d16070319c2");
 
         assertThat(hdfsUri, equalTo(
                 "hdfs://localhost/org/single-org/instances/1cfe7b45-1e07-4751-a853-78ef47a313cc/"));

@@ -25,7 +25,6 @@ import org.apache.hadoop.fs.permission.FsAction;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
 
 import java.io.ByteArrayInputStream;
