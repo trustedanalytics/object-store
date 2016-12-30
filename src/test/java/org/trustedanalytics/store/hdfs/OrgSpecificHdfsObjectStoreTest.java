@@ -53,7 +53,7 @@ public class OrgSpecificHdfsObjectStoreTest {
             FsPermissionHelper.getAclsForTechnicalUsers(TECHNICAL_USERS, FsAction.EXECUTE);
     private static final String URL = "hdfs://nameservice1/some_dir/";
     private static final Path PATH = new Path(URL);
-    private static final String UUID_PATTERN = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$";
+    private static final String ID_PATTERN = "[0-9a-zA-Z_-]+-[0-9]{6}-[0-9]{6}$";
 
     private FileSystem fs = mock(FileSystem.class, RETURNS_DEEP_STUBS);
 
@@ -119,7 +119,8 @@ public class OrgSpecificHdfsObjectStoreTest {
 
         OrgSpecificHdfsObjectStore objectStore = new OrgSpecificHdfsObjectStore(TECHNICAL_USERS, fs, URL);
 
-        String objectId = objectStore.save(new byte[0]);
+        String dataSetName = "data-Set_Name";
+        String objectId = objectStore.save(new byte[0], dataSetName);
         assertThat(objectId, endsWith("000000_1"));
 
         verify(fs).modifyAclEntries(pathValidAndStartsWith(URL),
@@ -141,7 +142,7 @@ public class OrgSpecificHdfsObjectStoreTest {
             @Override public boolean matches(Object actual) {
                 Path actualPath = (Path) actual;
                 String path = actualPath.toString();
-                return path.startsWith(text) && path.matches(".*/" + UUID_PATTERN);
+                return path.startsWith(text) && path.matches(".*/" + ID_PATTERN);
             }
         });
     }

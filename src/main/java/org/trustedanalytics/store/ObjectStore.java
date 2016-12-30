@@ -26,10 +26,10 @@ public interface ObjectStore {
     /**
      * @return unique id which allows to find given Object
      */
-    String save(InputStream input) throws IOException;
+    String save(InputStream input, String dataSetName) throws IOException;
 
-    default String save(byte[] bytes) throws IOException {
-        return save(new ByteArrayInputStream(bytes));
+    default String save(byte[] bytes, String dataSetName) throws IOException {
+        return save(new ByteArrayInputStream(bytes), dataSetName);
     }
 
     InputStream getContent(String objectId) throws IOException;

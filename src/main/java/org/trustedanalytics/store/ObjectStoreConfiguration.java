@@ -20,6 +20,7 @@ import org.trustedanalytics.hadoop.config.client.Configurations;
 import org.trustedanalytics.hadoop.config.client.Property;
 import org.trustedanalytics.hadoop.config.client.ServiceInstanceConfiguration;
 import org.trustedanalytics.hadoop.config.client.ServiceType;
+import org.trustedanalytics.id.JobIdSupplier;
 import org.trustedanalytics.kerberos.TapOAuthKerberosClient;
 import org.trustedanalytics.store.config.HdfsProperties;
 import org.trustedanalytics.store.config.SimpleInstanceConfiguration;
@@ -66,7 +67,7 @@ public class ObjectStoreConfiguration {
     
     @Autowired
     private KerberosClientConfiguration krbProps;
-    
+
     @Bean
     @Profile("default")
     public ObjectStore objectStore() {
@@ -75,14 +76,14 @@ public class ObjectStoreConfiguration {
 
     @Bean
     @Profile("s3")
-    public ObjectStore s3ObjectStore() {
+    public ObjectStore s3ObjectStore(JobIdSupplier jobIdSupplier) {
         CloudFactory cloudFactory = new CloudFactory();
         Cloud cloud = cloudFactory.getCloud();
         S3ServiceInfo s3ServiceInfo = (S3ServiceInfo) cloud.getServiceInfo("S3-serv-instance");
         AWSCredentials awsCredentials =
                 new BasicAWSCredentials(s3ServiceInfo.getAccessKey(), s3ServiceInfo.getSecretKey());
         AmazonS3 amazonS3 = new AmazonS3Client(awsCredentials);
-        return new S3ObjectStore(amazonS3, s3ServiceInfo.getBucket());
+        return new S3ObjectStore(amazonS3, s3ServiceInfo.getBucket(), jobIdSupplier);
     }
 
     @Bean

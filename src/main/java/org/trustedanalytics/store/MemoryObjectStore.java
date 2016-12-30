@@ -33,12 +33,12 @@ public class MemoryObjectStore implements ObjectStore {
     private MemoryUniqGeneratedKeysStore<byte[]> data = new MemoryUniqGeneratedKeysStore<>();
 
     @Override
-    public String save(InputStream input) throws IOException {
-        return save(ByteStreams.toByteArray(input));
+    public String save(InputStream input, String dataSetName) throws IOException {
+        return save(ByteStreams.toByteArray(input), dataSetName);
     }
 
     @Override
-    public String save(byte[] bytes) {
+    public String save(byte[] bytes, String dataSetName) {
         return data.put(bytes);
     }
 

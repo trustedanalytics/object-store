@@ -18,7 +18,6 @@ package org.trustedanalytics.store.s3;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.InterruptedByTimeoutException;
-import java.util.UUID;
 
 import org.trustedanalytics.store.ObjectStore;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +27,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.transfer.TransferManager;
+import org.trustedanalytics.id.JobIdSupplier;
 
 // TOODs:
 // * use multipart uploads to obey 5 GB limit and loading all into memory
@@ -40,21 +40,19 @@ public class S3ObjectStore implements ObjectStore {
     private final AmazonS3 amazonS3;
     private final String bucket;
     private final TransferManager transferManager;
+    private final JobIdSupplier jobIdSupplier;
 
     @Autowired
-    public S3ObjectStore(AmazonS3 amazonS3, String bucket) {
+    public S3ObjectStore(AmazonS3 amazonS3, String bucket, JobIdSupplier jobIdSupplier) {
         this.amazonS3 = amazonS3;
         this.bucket = bucket;
         this.transferManager = new TransferManager(amazonS3);
-    }
-
-    private String getFileName() {
-        return UUID.randomUUID().toString();
+        this.jobIdSupplier = jobIdSupplier;
     }
 
     @Override
-    public String save(InputStream input) throws IOException {
-        String name = S3_FOLDER + getFileName();
+    public String save(InputStream input, String dataSetName) throws IOException {
+        String name = S3_FOLDER + jobIdSupplier.get(dataSetName);
         PutObjectRequest request = new PutObjectRequest(bucket, name, input, new ObjectMetadata());
         try {
             transferManager.upload(request).waitForUploadResult();

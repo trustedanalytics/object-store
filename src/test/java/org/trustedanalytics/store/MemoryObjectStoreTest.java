@@ -43,11 +43,13 @@ public class MemoryObjectStoreTest {
 
     @Test
     public void testBasicCase() throws Exception {
+        String dataSetName1 = "dataSetName1";
         byte[] bytes1 = new byte[]{1, 2, 3, 4};
-        String id1 = store.save(bytes1);
+        String id1 = store.save(bytes1, dataSetName1);
 
+        String dataSetName2 = "dataSetName2";
         byte[] bytes2 = new byte[]{1, 2};
-        String id2 = store.save(bytes2);
+        String id2 = store.save(bytes2, dataSetName2);
 
         assertNotEquals(id1, id2);
 
@@ -78,8 +80,9 @@ public class MemoryObjectStoreTest {
     }
 
     private String addDataToStore(){
+        String dataSetName1 = "dataSetName1";
         byte[] bytes1 = new byte[]{1, 2, 3, 4};
-        return store.save(bytes1);
+        return store.save(bytes1, dataSetName1);
     }
 
     private void assertRemovedFromStore(String id) throws IOException {

@@ -15,8 +15,7 @@
  */
 package org.trustedanalytics.store.hdfs;
 
-import org.trustedanalytics.store.ObjectStore;
-import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
+import static org.apache.commons.lang.RandomStringUtils.randomAlphanumeric;
 
 import com.google.common.collect.ImmutableList;
 import org.apache.commons.lang.StringUtils;
@@ -28,18 +27,21 @@ import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.util.Progressable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.trustedanalytics.store.ObjectStore;
+import org.trustedanalytics.store.hdfs.fs.FsPermissionHelper;
+import org.trustedanalytics.id.IdWithTimestamp;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class HdfsObjectStore implements ObjectStore {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(HdfsObjectStore.class);
+    private final static int RANDOM_ELEMENTS_COUNT = 2;
 
     public static final int BUF_SIZE = 4096;
 
@@ -64,16 +66,16 @@ public class HdfsObjectStore implements ObjectStore {
     }
 
     @Override
-    public String save(InputStream input) throws IOException {
-        return saveObject(input).toString();
+    public String save(InputStream input, String dataSetName) throws IOException {
+        return saveObject(input, dataSetName).toString();
     }
 
-    private ObjectId getRandomId() {
-        return new ObjectId(UUID.randomUUID(), SAVED_DATASET_FILENAME);
+    private ObjectId getIdWithTimestamp(String dataSetName) {
+        return new ObjectId(IdWithTimestamp.generate(dataSetName).getId(), SAVED_DATASET_FILENAME);
     }
 
-    ObjectId saveObject(InputStream input) throws IOException {
-        ObjectId objectId = createNewObjectDir();
+    ObjectId saveObject(InputStream input, String dataSetName) throws IOException {
+        ObjectId objectId = createNewObjectDir(dataSetName);
         setAClsForTechnicalUsers(objectId);
 
         Path path = idToPath(objectId.toString());
@@ -96,10 +98,15 @@ public class HdfsObjectStore implements ObjectStore {
         }
     }
 
-    private void removePathIfExists(Path path) throws IOException {
-        if (hdfs.exists(path)) {
-            hdfs.delete(path, true);
+    ObjectId getUniqueId(String dataSetName) throws IOException {
+        ObjectId id = getIdWithTimestamp(dataSetName);
+        Path path = new Path(idToPath(id.toString()).toString());
+        String postfix = "";
+        while(hdfs.exists(path)) {
+            postfix += "-" + randomAlphanumeric(RANDOM_ELEMENTS_COUNT);
+            path = new Path(path.toString() + postfix);
         }
+        return new ObjectId(id.getDirectoryName() + postfix, id.getFileName());
     }
 
     private OutputStream getOutputStream(Path path) throws IOException {
@@ -128,16 +135,15 @@ public class HdfsObjectStore implements ObjectStore {
         return new Path(chrootPath + "/" + directoryPath);
     }
 
-    private ObjectId createNewObjectDir() throws IOException {
-        ObjectId objectId = getRandomId();
-        removePathIfExists(idToPath(objectId.toString()));
-        hdfs.mkdirs(idToDirectoryPath(objectId.toString()));
-        return objectId;
+    ObjectId createNewObjectDir(String dataSetName) throws IOException {
+        ObjectId uniqueId = getUniqueId(dataSetName);
+        hdfs.mkdirs(idToDirectoryPath(uniqueId.toString()));
+        return uniqueId;
     }
 
     private void setAClsForTechnicalUsers(ObjectId objectId) throws IOException {
         LOGGER.debug("setAClsForTechnicalUsers objectId = [" + objectId + "]");
-        Path path = getPath(chrootPath, objectId.getDirectoryName().toString());
+        Path path = getPath(chrootPath, objectId.getDirectoryName());
 
         hdfs.modifyAclEntries(path,
                 FsPermissionHelper.getAclsForTechnicalUsers(technicalUsers, FsAction.READ_EXECUTE));

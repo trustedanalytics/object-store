@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2015 Intel Corporation
+ * Copyright (c) 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,23 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.trustedanalytics.store.hdfs;
 
-import lombok.Getter;
+package org.trustedanalytics.id;
 
-public class ObjectId {
-    @Getter
-    private final String directoryName;
-    @Getter
-    private final String fileName;
-
-    public ObjectId(String directoryName, String fileName) {
-        this.directoryName = directoryName;
-        this.fileName = fileName;
-    }
-
-    @Override
-    public String toString() {
-        return directoryName + fileName;
-    }
+@FunctionalInterface
+public interface JobIdSupplier {
+    String get(String name);
 }

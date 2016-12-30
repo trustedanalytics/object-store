@@ -52,8 +52,8 @@ public class OrgSpecificHdfsObjectStore implements ObjectStore {
     }
 
     @Override
-    public String save(InputStream input) throws IOException {
-        return hdfsObjectStore.saveObject(input).toString();
+    public String save(InputStream input, String dataSetName) throws IOException {
+        return hdfsObjectStore.saveObject(input, dataSetName).toString();
     }
 
     @Override

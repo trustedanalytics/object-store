@@ -15,12 +15,13 @@
  */
 package org.trustedanalytics.store;
 
+import org.trustedanalytics.id.IdWithTimestamp;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.UUID;
 
 public class InFolderObjectStore implements ObjectStore {
 
@@ -31,8 +32,8 @@ public class InFolderObjectStore implements ObjectStore {
     }
 
     @Override
-    public String save(InputStream input) throws IOException {
-        File file = new File(folder, UUID.randomUUID().toString());
+    public String save(InputStream input, String dataSetName) throws IOException {
+        File file = new File(folder, IdWithTimestamp.generate(dataSetName).getId());
         Files.copy(input, file.toPath());
         return file.getName();
     }
