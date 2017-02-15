@@ -1,6 +1,3 @@
-[![Build Status](https://travis-ci.org/trustedanalytics/object-store.svg?branch=master)](https://travis-ci.org/trustedanalytics/object-store)
-[![Dependency Status](https://www.versioneye.com/user/projects/57236dc0ba37ce0031fc1e80/badge.svg?style=flat)](https://www.versioneye.com/user/projects/57236dc0ba37ce0031fc1e80)
-
 object-store
 =========
 
